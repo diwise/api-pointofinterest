@@ -47,7 +47,7 @@ func TestDataLoad(t *testing.T) {
 		return
 	}
 
-	_, err = db.GetFromID("1545")
+	_, err = db.GetFromID(SundsvallAnlaggningPrefix + "1545")
 	if err != nil {
 		t.Errorf("Failed to find entity in database")
 		return

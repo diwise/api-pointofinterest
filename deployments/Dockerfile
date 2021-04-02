@@ -16,10 +16,14 @@ WORKDIR /app/cmd/api-pointofinterest
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
 
-FROM alpine
+FROM registry.access.redhat.com/ubi8/ubi-minimal
+WORKDIR /opt/diwise
 
-RUN apk add ca-certificates
+COPY --from=builder /app/cmd/api-pointofinterest/api-pointofinterest /opt/diwise/
 
-COPY --from=builder /app/cmd/api-pointofinterest/api-pointofinterest /app/
+RUN chmod 775 /opt/diwise
 
-ENTRYPOINT ["/app/api-pointofinterest"]
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["/opt/diwise/api-pointofinterest"]

@@ -120,9 +120,8 @@ func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntiti
 	}
 
 	for _, poi := range pointsOfInterest {
-		lon := poi.Geometry.Lines[0][0][0][0]
-		lat := poi.Geometry.Lines[0][0][0][1]
-		beach := fiware.NewBeach(poi.ID, poi.Name, lat, lon)
+		location := ngsitypes.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
+		beach := fiware.NewBeach(poi.ID, poi.Name, location)
 
 		if poi.SensorID != nil {
 			sensor := fmt.Sprintf("%s%s", fiware.DeviceIDPrefix, *poi.SensorID)
@@ -146,10 +145,8 @@ func (cs *contextSource) RetrieveEntity(entityID string, request ngsi.Request) (
 		return nil, err
 	}
 
-	lon := poi.Geometry.Lines[0][0][0][0]
-	lat := poi.Geometry.Lines[0][0][0][1]
-
-	beach := fiware.NewBeach(poi.ID, poi.Name, lat, lon).WithDescription(poi.Description)
+	location := ngsitypes.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
+	beach := fiware.NewBeach(poi.ID, poi.Name, location).WithDescription(poi.Description)
 	return beach, nil
 }
 

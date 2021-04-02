@@ -89,7 +89,7 @@ func CreateRouterAndStartServing(db database.Datastore, log logging.Logger) {
 
 	port := os.Getenv("SERVICE_PORT")
 	if port == "" {
-		port = "8880"
+		port = "8080"
 	}
 
 	log.Infof("Starting api-pointofinterest on port %s.\n", port)
@@ -139,9 +139,7 @@ func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntiti
 func (cs *contextSource) RetrieveEntity(entityID string, request ngsi.Request) (ngsi.Entity, error) {
 
 	// Remove urn:ngsi-ld:Beach prefix
-	if strings.HasPrefix(entityID, fiware.BeachIDPrefix) {
-		entityID = entityID[len(fiware.BeachIDPrefix):]
-	}
+	entityID = strings.TrimPrefix(entityID, fiware.BeachIDPrefix)
 
 	poi, err := cs.db.GetFromID(entityID)
 	if err != nil {

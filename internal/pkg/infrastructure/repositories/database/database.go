@@ -248,11 +248,11 @@ func (db *myDB) GetAllFromType(typ string) ([]domain.POI, error) {
 
 func (db *myDB) UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error) {
 
-	for _, poi := range db.beaches {
+	for idx, poi := range db.beaches {
 		if poi.SensorID != nil && *poi.SensorID == device {
 			if observedAt.After(poi.DateModified) {
-				poi.WaterTemperature = &temp
-				poi.DateModified = time.Now().UTC()
+				db.beaches[idx].WaterTemperature = &temp
+				db.beaches[idx].DateModified = time.Now().UTC()
 				return poi.ID, nil
 			} else {
 				return poi.ID, fmt.Errorf("ignored temperature update that predates datemodified of %s", poi.ID)

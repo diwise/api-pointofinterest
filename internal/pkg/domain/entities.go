@@ -8,12 +8,13 @@ type MultiPolygon struct {
 
 //POI contains a point of interest
 type POI struct {
-	ID           string
-	Name         string
-	Description  string
-	Geometry     MultiPolygon
-	WikidataID   *string
-	SensorID     *string
-	DateCreated  time.Time
-	DateModified time.Time
+	ID               string
+	Name             string
+	Description      string
+	Geometry         MultiPolygon
+	WikidataID       *string
+	SensorID         *string
+	WaterTemperature *float64
+	DateCreated      time.Time
+	DateModified     time.Time
 }

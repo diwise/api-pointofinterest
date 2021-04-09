@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/diwise/api-pointofinterest/internal/pkg/domain"
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
@@ -51,6 +52,8 @@ type FeatureCollection struct {
 type Datastore interface {
 	GetFromID(id string) (*domain.POI, error)
 	GetAllFromType(typ string) ([]domain.POI, error)
+
+	UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error)
 }
 
 //NewDatabaseConnection does not open a new connection ...
@@ -241,4 +244,22 @@ func (db *myDB) GetFromID(id string) (*domain.POI, error) {
 
 func (db *myDB) GetAllFromType(typ string) ([]domain.POI, error) {
 	return db.beaches, nil
+}
+
+func (db *myDB) UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error) {
+	device = fmt.Sprintf("se.servanet.lora:%s", device)
+
+	for _, poi := range db.beaches {
+		if poi.SensorID != nil && *poi.SensorID == device {
+			if observedAt.After(poi.DateModified) {
+				poi.WaterTemperature = &temp
+				poi.DateModified = time.Now().UTC()
+				return poi.ID, nil
+			} else {
+				return poi.ID, fmt.Errorf("ignored temperature update that predates datemodified of %s", poi.ID)
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no POI found matching sensor ID %s", device)
 }

@@ -247,7 +247,6 @@ func (db *myDB) GetAllFromType(typ string) ([]domain.POI, error) {
 }
 
 func (db *myDB) UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error) {
-	device = fmt.Sprintf("se.servanet.lora:%s", device)
 
 	for _, poi := range db.beaches {
 		if poi.SensorID != nil && *poi.SensorID == device {

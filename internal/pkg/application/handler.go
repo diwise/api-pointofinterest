@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/iot-for-tillgenglighet/ngsi-ld-golang/pkg/datamodels/fiware"
 	"github.com/iot-for-tillgenglighet/ngsi-ld-golang/pkg/ngsi-ld"
+	"github.com/iot-for-tillgenglighet/ngsi-ld-golang/pkg/ngsi-ld/geojson"
 	ngsitypes "github.com/iot-for-tillgenglighet/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/rs/cors"
 )
@@ -120,7 +121,7 @@ func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntiti
 	}
 
 	for _, poi := range pointsOfInterest {
-		location := ngsitypes.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
+		location := geojson.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
 		beach := fiware.NewBeach(poi.ID, poi.Name, location)
 
 		if poi.SensorID != nil {
@@ -145,7 +146,7 @@ func (cs *contextSource) RetrieveEntity(entityID string, request ngsi.Request) (
 		return nil, err
 	}
 
-	location := ngsitypes.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
+	location := geojson.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
 	beach := fiware.NewBeach(poi.ID, poi.Name, location).WithDescription(poi.Description)
 	return beach, nil
 }

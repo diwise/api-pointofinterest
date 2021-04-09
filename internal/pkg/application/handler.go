@@ -130,6 +130,10 @@ func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntiti
 			beach.RefSeeAlso = &ref
 		}
 
+		if poi.WaterTemperature != nil {
+			beach.WaterTemperature = ngsitypes.NewNumberProperty(*poi.WaterTemperature)
+		}
+
 		callback(beach.WithDescription(poi.Description))
 	}
 

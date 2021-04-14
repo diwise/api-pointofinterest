@@ -115,13 +115,14 @@ func NewDatabaseConnection(sourceURL string, log logging.Logger) (Datastore, err
 					} else if field.ID == 230 {
 						sensor := "se:servanet:lora:" + string(field.Value[1:len(field.Value)-1])
 						poi.SensorID = &sensor
+						log.Infof("assigning sensor %s to poi %s", sensor, poi.ID)
 					}
 				}
 
 				// TODO: This should not be hardcoded here.
-				if poi.SensorID == nil {
+				/*if poi.SensorID == nil {
 					poi.SensorID = lookupTempSensorFromBeachID(feature.ID)
-				}
+				}*/
 
 				db.beaches = append(db.beaches, *poi)
 			}

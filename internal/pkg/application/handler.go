@@ -124,9 +124,23 @@ func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntiti
 		location := geojson.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
 		beach := fiware.NewBeach(poi.ID, poi.Name, location)
 
+		references := []string{}
+
 		if poi.SensorID != nil {
 			sensor := fmt.Sprintf("%s%s", fiware.DeviceIDPrefix, *poi.SensorID)
-			ref := ngsitypes.NewMultiObjectRelationship([]string{sensor})
+			references = append(references, sensor)
+		}
+
+		if poi.NUTSCode != nil {
+			references = append(references, fmt.Sprintf("https://badplatsen.havochvatten.se/badplatsen/karta/#/bath/%s", *poi.NUTSCode))
+		}
+
+		if poi.WikidataID != nil {
+			references = append(references, fmt.Sprintf("https://www.wikidata.org/wiki/%s", *poi.WikidataID))
+		}
+
+		if len(references) > 0 {
+			ref := ngsitypes.NewMultiObjectRelationship(references)
 			beach.RefSeeAlso = &ref
 		}
 

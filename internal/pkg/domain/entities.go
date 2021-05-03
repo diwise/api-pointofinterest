@@ -13,6 +13,7 @@ type POI struct {
 	Description      string
 	Geometry         MultiPolygon
 	WikidataID       *string
+	NUTSCode         *string
 	SensorID         *string
 	WaterTemperature *float64
 	DateCreated      time.Time

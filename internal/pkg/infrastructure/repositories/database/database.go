@@ -119,10 +119,15 @@ func NewDatabaseConnection(sourceURL string, log logging.Logger) (Datastore, err
 					}
 				}
 
-				// TODO: This should not be hardcoded here.
-				/*if poi.SensorID == nil {
-					poi.SensorID = lookupTempSensorFromBeachID(feature.ID)
-				}*/
+				if ref, ok := seeAlsoRefs[feature.ID]; ok {
+					if len(ref.nuts) > 0 {
+						poi.NUTSCode = &ref.nuts
+					}
+
+					if len(ref.wikidata) > 0 {
+						poi.WikidataID = &ref.wikidata
+					}
+				}
 
 				db.beaches = append(db.beaches, *poi)
 			}
@@ -191,40 +196,75 @@ func convertSWEREFtoWGS84(x, y float64) (float64, float64) {
 	return lon, lat
 }
 
-var tempSensors map[int64]string = map[int64]string{
-	283:  "sk-elt-temp-21",
-	284:  "sk-elt-temp-28",
-	295:  "sk-elt-temp-22",
-	315:  "sk-elt-temp-26",
-	322:  "sk-elt-temp-17",
-	323:  "sk-elt-temp-02",
-	337:  "sk-elt-temp-25",
-	357:  "sk-elt-temp-27",
-	414:  "sk-elt-temp-08",
-	421:  "sk-elt-temp-10",
-	430:  "sk-elt-temp-13",
-	442:  "sk-elt-temp-12",
-	456:  "sk-elt-temp-19",
-	469:  "sk-elt-temp-09",
-	488:  "sk-elt-temp-16",
-	495:  "sk-elt-temp-04",
-	513:  "sk-elt-temp-11",
-	526:  "sk-elt-temp-18",
-	553:  "sk-elt-temp-24",
-	560:  "sk-elt-temp-03",
-	656:  "sk-elt-temp-14",
-	657:  "sk-elt-temp-07",
-	658:  "sk-elt-temp-15",
-	659:  "sk-elt-temp-05",
-	660:  "sk-elt-temp-01",
-	1234: "sk-elt-temp-23",
-	1618: "sk-elt-temp-06",
-	1631: "sk-elt-temp-20",
+type extraInfo struct {
+	nuts     string
+	wikidata string
+	sensorID string
+}
+
+var seeAlsoRefs map[int64]extraInfo = map[int64]extraInfo{
+	// Slädaviken
+	283: {nuts: "SE0712281000003473", sensorID: "sk-elt-temp-21", wikidata: "Q10671745"},
+	// Hartungviken
+	284: {nuts: "SE0712281000003472", sensorID: "sk-elt-temp-28", wikidata: "Q680645"},
+	// Tranviken
+	295: {nuts: "SE0712281000003474", sensorID: "sk-elt-temp-22", wikidata: "Q106657132"},
+	// Bänkåsviken
+	315: {nuts: "SE0712281000003471", sensorID: "sk-elt-temp-26", wikidata: "Q106657054"},
+	// Stekpannan, Hornsjön
+	322: {nuts: "SE0712281000003478", sensorID: "sk-elt-temp-17"},
+	// Dyket
+	323: {nuts: "SE0712281000003477", sensorID: "sk-elt-temp-02"},
+	// Fläsian, Nord
+	337: {nuts: "SE0712281000003450", sensorID: "sk-elt-temp-25"},
+	// Sodom
+	357: {nuts: "SE0712281000003479", sensorID: "sk-elt-temp-27"},
+	// Rännö
+	414: {nuts: "SE0712281000003464", sensorID: "sk-elt-temp-08"},
+	// Lucksta
+	421: {nuts: "SE0712281000003461", sensorID: "sk-elt-temp-10"},
+	// Norrhassel
+	430: {nuts: "SE0712281000003462", sensorID: "sk-elt-temp-13"},
+	// Viggesand
+	442: {nuts: "SE0712281000003469", sensorID: "sk-elt-temp-12"},
+	// Räveln
+	456: {nuts: "SE0712281000003468", sensorID: "sk-elt-temp-19"},
+	// Segersjön
+	469: {nuts: "SE0712281000003452", sensorID: "sk-elt-temp-09"},
+	// Vången
+	488: {nuts: "SE0712281000003470", sensorID: "sk-elt-temp-16"},
+	// Edeforsens badplats
+	495: {nuts: "SE0712281000003467", sensorID: "sk-elt-temp-04"},
+	// Pallviken
+	513: {nuts: "SE0712281000003463", sensorID: "sk-elt-temp-11"},
+	// Östtjärn
+	526: {nuts: "SE0712281000003466", sensorID: "sk-elt-temp-18"},
+	// Bergafjärden
+	553: {nuts: "SE0712281000003475", sensorID: "sk-elt-temp-24", wikidata: "Q16498519"},
+	// Brudsjön
+	560: {nuts: "SE0712281000003455", sensorID: "sk-elt-temp-03"},
+	// Sandnäset
+	656: {nuts: "SE0712281000003459", sensorID: "sk-elt-temp-14"},
+	657: {sensorID: "sk-elt-temp-07"}, // Abborrviken, Sidsjön
+	// Västbyn
+	658: {nuts: "SE0712281000003460", sensorID: "sk-elt-temp-15"},
+	// Väster-Lövsjön
+	659: {nuts: "SE0712281000003453", sensorID: "sk-elt-temp-05"},
+	// Sidsjöns hundbad
+	660: {nuts: "SE0712281000004229", sensorID: "sk-elt-temp-01"},
+	// Kävstabadet, Indal
+	897: {nuts: "SE0712281000003456"},
+	// Bredsand
+	1234: {nuts: "SE0712281000003476", sensorID: "sk-elt-temp-23"},
+	// Bjässjön
+	1618: {nuts: "SE0712281000003454", sensorID: "sk-elt-temp-06"},
+	// Fläsian, Syd
+	1631: {nuts: "SE0712281000003480", sensorID: "sk-elt-temp-20"},
 }
 
 func lookupTempSensorFromBeachID(beach int64) *string {
-	if sensor, ok := tempSensors[beach]; ok {
-		prefixedSensor := fmt.Sprintf("se:servanet:lora:%s", sensor)
+	if sensor, ok := seeAlsoRefs[beach]; ok {
+		prefixedSensor := fmt.Sprintf("se:servanet:lora:%s", sensor.sensorID)
 		return &prefixedSensor
 	}
 	return nil

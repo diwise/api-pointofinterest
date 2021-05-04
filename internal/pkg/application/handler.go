@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/repositories/database"
@@ -146,6 +147,14 @@ func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntiti
 
 		if poi.WaterTemperature != nil {
 			beach.WaterTemperature = ngsitypes.NewNumberProperty(*poi.WaterTemperature)
+		}
+
+		if !poi.DateCreated.IsZero() {
+			beach.DateCreated = ngsitypes.CreateDateTimeProperty(poi.DateCreated.Format(time.RFC3339))
+		}
+
+		if !poi.DateModified.IsZero() {
+			beach.DateModified = ngsitypes.CreateDateTimeProperty(poi.DateModified.Format(time.RFC3339))
 		}
 
 		callback(beach.WithDescription(poi.Description))

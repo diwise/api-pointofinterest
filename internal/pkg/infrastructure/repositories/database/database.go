@@ -90,6 +90,22 @@ func NewDatabaseConnection(sourceURL string, log logging.Logger) (Datastore, err
 					Description: "",
 				}
 
+				var timeFormat string = "2006-01-02 15:04:05"
+
+				if feature.Properties.Created != nil {
+					created, err := time.Parse(timeFormat, *feature.Properties.Created)
+					if err == nil {
+						poi.DateCreated = created.UTC()
+					}
+				}
+
+				if feature.Properties.Updated != nil {
+					modified, err := time.Parse(timeFormat, *feature.Properties.Updated)
+					if err == nil {
+						poi.DateModified = modified.UTC()
+					}
+				}
+
 				err = json.Unmarshal(feature.Geometry.Coordinates, &poi.Geometry.Lines)
 				if err != nil {
 					return nil, fmt.Errorf("failed to unmarshal geometry %s: %s", string(feature.Geometry.Coordinates), err.Error())

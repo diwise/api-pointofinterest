@@ -7,8 +7,8 @@ import (
 
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/repositories/database"
-	"github.com/iot-for-tillgenglighet/messaging-golang/pkg/messaging"
-	"github.com/iot-for-tillgenglighet/messaging-golang/pkg/messaging/telemetry"
+	"github.com/diwise/messaging-golang/pkg/messaging"
+	"github.com/diwise/messaging-golang/pkg/messaging/telemetry"
 	"github.com/streadway/amqp"
 )
 

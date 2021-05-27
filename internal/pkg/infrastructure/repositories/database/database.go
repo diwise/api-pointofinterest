@@ -228,52 +228,52 @@ var seeAlsoRefs map[int64]extraInfo = map[int64]extraInfo{
 	// Bänkåsviken
 	315: {nuts: "SE0712281000003471", sensorID: "sk-elt-temp-26", wikidata: "Q106657054"},
 	// Stekpannan, Hornsjön
-	322: {nuts: "SE0712281000003478", sensorID: "sk-elt-temp-17"},
+	322: {nuts: "SE0712281000003478", sensorID: "sk-elt-temp-17", wikidata: "Q106710721"},
 	// Dyket
-	323: {nuts: "SE0712281000003477", sensorID: "sk-elt-temp-02"},
+	323: {nuts: "SE0712281000003477", sensorID: "sk-elt-temp-02", wikidata: "Q106710719"},
 	// Fläsian, Nord
 	337: {nuts: "SE0712281000003450", sensorID: "sk-elt-temp-25"},
 	// Sodom
-	357: {nuts: "SE0712281000003479", sensorID: "sk-elt-temp-27"},
+	357: {nuts: "SE0712281000003479", sensorID: "sk-elt-temp-27", wikidata: "Q106710722"},
 	// Rännö
-	414: {nuts: "SE0712281000003464", sensorID: "sk-elt-temp-08"},
+	414: {nuts: "SE0712281000003464", sensorID: "sk-elt-temp-08", wikidata: "Q106710690"},
 	// Lucksta
-	421: {nuts: "SE0712281000003461", sensorID: "sk-elt-temp-10"},
+	421: {nuts: "SE0712281000003461", sensorID: "sk-elt-temp-10", wikidata: "Q106710684"},
 	// Norrhassel
-	430: {nuts: "SE0712281000003462", sensorID: "sk-elt-temp-13"},
+	430: {nuts: "SE0712281000003462", sensorID: "sk-elt-temp-13", wikidata: "Q106710685"},
 	// Viggesand
-	442: {nuts: "SE0712281000003469", sensorID: "sk-elt-temp-12"},
+	442: {nuts: "SE0712281000003469", sensorID: "sk-elt-temp-12", wikidata: "Q106710700"},
 	// Räveln
-	456: {nuts: "SE0712281000003468", sensorID: "sk-elt-temp-19"},
+	456: {nuts: "SE0712281000003468", sensorID: "sk-elt-temp-19", wikidata: "Q106710698"},
 	// Segersjön
-	469: {nuts: "SE0712281000003452", sensorID: "sk-elt-temp-09"},
+	469: {nuts: "SE0712281000003452", sensorID: "sk-elt-temp-09", wikidata: "Q106710670"},
 	// Vången
-	488: {nuts: "SE0712281000003470", sensorID: "sk-elt-temp-16"},
+	488: {nuts: "SE0712281000003470", sensorID: "sk-elt-temp-16", wikidata: "Q106710701"},
 	// Edeforsens badplats
-	495: {nuts: "SE0712281000003467", sensorID: "sk-elt-temp-04"},
+	495: {nuts: "SE0712281000003467", sensorID: "sk-elt-temp-04", wikidata: "Q106710696"},
 	// Pallviken
-	513: {nuts: "SE0712281000003463", sensorID: "sk-elt-temp-11"},
+	513: {nuts: "SE0712281000003463", sensorID: "sk-elt-temp-11", wikidata: "Q106710688"},
 	// Östtjärn
-	526: {nuts: "SE0712281000003466", sensorID: "sk-elt-temp-18"},
+	526: {nuts: "SE0712281000003466", sensorID: "sk-elt-temp-18", wikidata: "Q106710694"},
 	// Bergafjärden
 	553: {nuts: "SE0712281000003475", sensorID: "sk-elt-temp-24", wikidata: "Q16498519"},
 	// Brudsjön
-	560: {nuts: "SE0712281000003455", sensorID: "sk-elt-temp-03"},
+	560: {nuts: "SE0712281000003455", sensorID: "sk-elt-temp-03", wikidata: "Q106710675"},
 	// Sandnäset
-	656: {nuts: "SE0712281000003459", sensorID: "sk-elt-temp-14"},
+	656: {nuts: "SE0712281000003459", sensorID: "sk-elt-temp-14", wikidata: "Q106710678"},
 	657: {sensorID: "sk-elt-temp-07"}, // Abborrviken, Sidsjön
 	// Västbyn
-	658: {nuts: "SE0712281000003460", sensorID: "sk-elt-temp-15"},
+	658: {nuts: "SE0712281000003460", sensorID: "sk-elt-temp-15", wikidata: "Q106710681"},
 	// Väster-Lövsjön
-	659: {nuts: "SE0712281000003453", sensorID: "sk-elt-temp-05"},
+	659: {nuts: "SE0712281000003453", sensorID: "sk-elt-temp-05", wikidata: "Q106710672"},
 	// Sidsjöns hundbad
 	660: {nuts: "SE0712281000004229", sensorID: "sk-elt-temp-01"},
 	// Kävstabadet, Indal
-	897: {nuts: "SE0712281000003456"},
+	897: {nuts: "SE0712281000003456", wikidata: "Q106710677"},
 	// Bredsand
-	1234: {nuts: "SE0712281000003476", sensorID: "sk-elt-temp-23"},
+	1234: {nuts: "SE0712281000003476", sensorID: "sk-elt-temp-23", wikidata: "Q106710717"},
 	// Bjässjön
-	1618: {nuts: "SE0712281000003454", sensorID: "sk-elt-temp-06"},
+	1618: {nuts: "SE0712281000003454", sensorID: "sk-elt-temp-06", wikidata: "Q106947945"},
 	// Fläsian, Syd
 	1631: {nuts: "SE0712281000003480", sensorID: "sk-elt-temp-20"},
 }

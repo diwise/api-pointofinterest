@@ -111,14 +111,6 @@ func NewDatabaseConnection(sourceURL string, log logging.Logger) (Datastore, err
 					return nil, fmt.Errorf("failed to unmarshal geometry %s: %s", string(feature.Geometry.Coordinates), err.Error())
 				}
 
-				for _, polygon := range poi.Geometry.Lines {
-					for _, line := range polygon {
-						for _, point := range line {
-							point[0], point[1] = convertSWEREFtoWGS84(point[1], point[0])
-						}
-					}
-				}
-
 				fields := []FeaturePropField{}
 				err = json.Unmarshal(feature.Properties.Fields, &fields)
 				if err != nil {

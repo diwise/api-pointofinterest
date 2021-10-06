@@ -40,7 +40,7 @@ var response = `{"type":"FeatureCollection","features":[
 func TestDataLoad(t *testing.T) {
 	mockServer := setupMockServiceThatReturns(200, response)
 	url := mockServer.URL
-	db, err := NewDatabaseConnection(url, logging.NewLogger())
+	db, err := NewDatabaseConnection(url, "", logging.NewLogger())
 
 	if err != nil {
 		t.Errorf("Test failed: %s", err.Error())

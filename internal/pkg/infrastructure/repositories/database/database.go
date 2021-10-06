@@ -71,11 +71,11 @@ func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datast
 		return nil, err
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("loading data from %s failed with status %d", sourceURL, resp.StatusCode)
 	}
-
-	defer resp.Body.Close()
 
 	featureCollection := &FeatureCollection{}
 	body, _ := io.ReadAll(resp.Body)

@@ -57,12 +57,25 @@ type Datastore interface {
 }
 
 //NewDatabaseConnection does not open a new connection ...
-func NewDatabaseConnection(sourceURL string, log logging.Logger) (Datastore, error) {
+func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datastore, error) {
+	if sourceURL == "" || apiKey == "" {
+		return nil, fmt.Errorf("all environment variables must be set")
+	}
+
 	log.Infof("Loading data from %s ...", sourceURL)
-	resp, err := http.Get(sourceURL)
+
+	req, err := http.NewRequest("GET", sourceURL+"/list", nil)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("apikey", apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {

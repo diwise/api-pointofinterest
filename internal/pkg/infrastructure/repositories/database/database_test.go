@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
+	"github.com/matryer/is"
 )
 
 func TestMain(m *testing.M) {
@@ -43,7 +44,7 @@ var response = `{"type":"FeatureCollection","features":[
 func TestDataLoad(t *testing.T) {
 	mockServer := setupMockServiceThatReturns(200, response)
 	url := mockServer.URL
-	db, err := NewDatabaseConnection(url, logging.NewLogger())
+	db, err := NewDatabaseConnection(url, "apikey", logging.NewLogger())
 
 	if err != nil {
 		t.Errorf("Test failed: %s", err.Error())
@@ -65,6 +66,14 @@ func TestDataLoad(t *testing.T) {
 	if len(all) != 1 {
 		t.Errorf("Expected 1 but was %d published beaches", len(all))
 	}
+}
+
+func TestThatNewDatabaseConnectionFailsOnEmptyApikey(t *testing.T) {
+	is := is.New(t)
+
+	_, err := NewDatabaseConnection("", "", logging.NewLogger())
+
+	is.True(err != nil) // NewDatabaseConnection should fail if apikey is left empty.
 }
 
 func setupMockServiceThatReturns(responseCode int, body string) *httptest.Server {

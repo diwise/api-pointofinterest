@@ -18,8 +18,9 @@ func main() {
 	log.Infof("Starting up %s ...", serviceName)
 
 	sourceURL := os.Getenv("SOURCE_DATA_URL")
+	apiKey := os.Getenv("SOURCE_DATA_APIKEY")
 
-	db, err := database.NewDatabaseConnection(sourceURL, log)
+	db, err := database.NewDatabaseConnection(sourceURL, apiKey, log)
 	if err != nil {
 		panic(err.Error())
 	}

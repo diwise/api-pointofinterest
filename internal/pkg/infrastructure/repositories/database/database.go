@@ -58,8 +58,8 @@ type Datastore interface {
 
 //NewDatabaseConnection does not open a new connection ...
 func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datastore, error) {
-	if apiKey == "" {
-		return nil, fmt.Errorf("api key must not be empty")
+	if sourceURL == "" || apiKey == "" {
+		return nil, fmt.Errorf("all environment variables must be set")
 	}
 
 	log.Infof("Loading data from %s ...", sourceURL)

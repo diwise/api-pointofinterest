@@ -5,28 +5,28 @@ import (
 	"math"
 	"time"
 
-	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/repositories/database"
 	"github.com/diwise/messaging-golang/pkg/messaging"
 	"github.com/diwise/messaging-golang/pkg/messaging/telemetry"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/rs/zerolog"
 )
 
-func CreateWaterTempReceiver(db database.Datastore, log logging.Logger) messaging.TopicMessageHandler {
-	return func(msg amqp.Delivery) {
+func CreateWaterTempReceiver(db database.Datastore) messaging.TopicMessageHandler {
+	return func(msg amqp.Delivery, logger zerolog.Logger) {
 
-		log.Infof("Message received from queue: %s", string(msg.Body))
+		logger.Info().Str("body", string(msg.Body)).Msg("message received from queue")
 
 		telTemp := &telemetry.WaterTemperature{}
 		err := json.Unmarshal(msg.Body, telTemp)
 
 		if err != nil {
-			log.Error("Failed to unmarshal message")
+			logger.Error().Err(err).Msg("Failed to unmarshal message")
 			return
 		}
 
 		if telTemp.Timestamp == "" {
-			log.Infof("Ignored water temperature message with an empty timestamp.")
+			logger.Info().Msgf("Ignored water temperature message with an empty timestamp.")
 			return
 		}
 
@@ -36,9 +36,9 @@ func CreateWaterTempReceiver(db database.Datastore, log logging.Logger) messagin
 
 		poi, err := db.UpdateWaterTemperatureFromDeviceID(device, temp, observedAt)
 		if err == nil {
-			log.Infof("updated water temperature at %s to %f degrees", poi, temp)
+			logger.Info().Msgf("updated water temperature at %s to %f degrees", poi, temp)
 		} else {
-			log.Infof("temperature update was ignored: %s", err.Error())
+			logger.Error().Err(err).Msg("temperature update was ignored")
 		}
 	}
 }

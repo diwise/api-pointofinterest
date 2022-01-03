@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/diwise/api-pointofinterest/internal/pkg/domain"
-	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
 )
 
 const (
@@ -57,12 +59,12 @@ type Datastore interface {
 }
 
 //NewDatabaseConnection does not open a new connection ...
-func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datastore, error) {
+func NewDatabaseConnection(sourceURL, apiKey string, logger zerolog.Logger) (Datastore, error) {
 	if sourceURL == "" || apiKey == "" {
 		return nil, fmt.Errorf("all environment variables must be set")
 	}
 
-	log.Infof("Loading data from %s ...", sourceURL)
+	logger.Info().Msgf("loading data from %s ...", sourceURL)
 
 	req, err := http.NewRequest("GET", sourceURL+"/list", nil)
 	if err != nil {
@@ -95,7 +97,7 @@ func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datast
 	for _, feature := range featureCollection.Features {
 		if feature.Properties.Published {
 			if feature.Properties.Type == "Strandbad" {
-				log.Infof("Hittade publicerad badplats %d %s\n", feature.ID, feature.Properties.Name)
+				log.Info().Msgf("found published beach %d %s\n", feature.ID, feature.Properties.Name)
 
 				beach := &domain.Beach{
 					ID:          fmt.Sprintf("%s%d", SundsvallAnlaggningPrefix, feature.ID),
@@ -136,7 +138,7 @@ func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datast
 					} else if field.ID == 230 {
 						sensor := "se:servanet:lora:" + string(field.Value[1:len(field.Value)-1])
 						beach.SensorID = &sensor
-						log.Infof("assigning sensor %s to beach %s", sensor, beach.ID)
+						logger.Info().Msgf("assigning sensor %s to beach %s", sensor, beach.ID)
 					}
 				}
 

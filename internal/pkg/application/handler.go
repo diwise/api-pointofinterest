@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/repositories/database"
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld"
@@ -18,6 +17,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/rs/cors"
+	"github.com/rs/zerolog"
 )
 
 //RequestRouter needs a comment
@@ -77,16 +77,16 @@ func createRequestRouter(contextRegistry ngsi.ContextRegistry) *RequestRouter {
 	return router
 }
 
-func createContextRegistry(db database.Datastore, log logging.Logger) ngsi.ContextRegistry {
+func createContextRegistry(db database.Datastore, logger zerolog.Logger) ngsi.ContextRegistry {
 	contextRegistry := ngsi.NewContextRegistry()
-	ctxSource := contextSource{db: db, log: log}
+	ctxSource := contextSource{db: db, logger: logger}
 	contextRegistry.Register(&ctxSource)
 	return contextRegistry
 }
 
 //CreateRouterAndStartServing sets up the NGSI-LD router and starts serving incoming requests
-func CreateRouterAndStartServing(db database.Datastore, log logging.Logger) {
-	contextRegistry := createContextRegistry(db, log)
+func CreateRouterAndStartServing(db database.Datastore, logger zerolog.Logger) {
+	contextRegistry := createContextRegistry(db, logger)
 	router := createRequestRouter(contextRegistry)
 
 	port := os.Getenv("SERVICE_PORT")
@@ -94,13 +94,17 @@ func CreateRouterAndStartServing(db database.Datastore, log logging.Logger) {
 		port = "8080"
 	}
 
-	log.Infof("Starting api-pointofinterest on port %s.\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, router.impl))
+	logger.Info().Str("port", port).Msg("listening for incoming connections")
+
+	err := http.ListenAndServe(":"+port, router.impl)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to start listening on port")
+	}
 }
 
 type contextSource struct {
-	db  database.Datastore
-	log logging.Logger
+	db     database.Datastore
+	logger zerolog.Logger
 }
 
 func (cs *contextSource) ProvidesAttribute(attributeName string) bool {
@@ -109,6 +113,14 @@ func (cs *contextSource) ProvidesAttribute(attributeName string) bool {
 
 func (cs *contextSource) ProvidesEntitiesWithMatchingID(entityID string) bool {
 	return strings.HasPrefix(entityID, fiware.BeachIDPrefix)
+}
+
+func (cs *contextSource) GetProvidedTypeFromID(entityID string) (string, error) {
+	if strings.HasPrefix(entityID, fiware.BeachIDPrefix) {
+		return "Beach", nil
+	}
+
+	return "", fmt.Errorf("unknown entityID prefix")
 }
 
 func (cs *contextSource) ProvidesType(typeName string) bool {

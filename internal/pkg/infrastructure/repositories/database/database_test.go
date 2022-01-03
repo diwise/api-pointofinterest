@@ -6,7 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
+	"github.com/rs/zerolog/log"
+
 	"github.com/matryer/is"
 )
 
@@ -44,7 +45,8 @@ var response = `{"type":"FeatureCollection","features":[
 func TestDataLoad(t *testing.T) {
 	mockServer := setupMockServiceThatReturns(200, response)
 	url := mockServer.URL
-	db, err := NewDatabaseConnection(url, "apikey", logging.NewLogger())
+
+	db, err := NewDatabaseConnection(url, "apikey", log.With().Logger())
 
 	if err != nil {
 		t.Errorf("Test failed: %s", err.Error())
@@ -71,7 +73,7 @@ func TestDataLoad(t *testing.T) {
 func TestThatNewDatabaseConnectionFailsOnEmptyApikey(t *testing.T) {
 	is := is.New(t)
 
-	_, err := NewDatabaseConnection("", "", logging.NewLogger())
+	_, err := NewDatabaseConnection("", "", log.With().Logger())
 
 	is.True(err != nil) // NewDatabaseConnection should fail if apikey is left empty.
 }

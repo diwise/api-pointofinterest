@@ -2,9 +2,11 @@ package main
 
 import (
 	"os"
+	"strings"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/diwise/api-pointofinterest/internal/pkg/application"
-	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/logging"
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/repositories/database"
 	"github.com/diwise/messaging-golang/pkg/messaging"
 	"github.com/diwise/messaging-golang/pkg/messaging/telemetry"
@@ -14,25 +16,24 @@ func main() {
 
 	serviceName := "api-pointofinterest"
 
-	log := logging.NewLogger()
-	log.Infof("Starting up %s ...", serviceName)
+	logger := log.With().Str("service", strings.ToLower(serviceName)).Logger()
+
+	logger.Info().Msg("starting up ...")
 
 	sourceURL := os.Getenv("SOURCE_DATA_URL")
 	apiKey := os.Getenv("SOURCE_DATA_APIKEY")
 
-	db, err := database.NewDatabaseConnection(sourceURL, apiKey, log)
+	db, err := database.NewDatabaseConnection(sourceURL, apiKey, logger)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	config := messaging.LoadConfiguration(serviceName)
+	config := messaging.LoadConfiguration(serviceName, logger)
 	messenger, _ := messaging.Initialize(config)
 	defer messenger.Close()
 
-	messenger.RegisterTopicMessageHandler(
-		(&telemetry.WaterTemperature{}).TopicName(),
-		application.CreateWaterTempReceiver(db, log),
-	)
+	h := application.CreateWaterTempReceiver(db)
+	messenger.RegisterTopicMessageHandler((&telemetry.WaterTemperature{}).TopicName(), h)
 
-	application.CreateRouterAndStartServing(db, log)
+	application.CreateRouterAndStartServing(db, logger)
 }

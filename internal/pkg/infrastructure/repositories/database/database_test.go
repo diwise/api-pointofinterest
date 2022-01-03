@@ -51,13 +51,13 @@ func TestDataLoad(t *testing.T) {
 		return
 	}
 
-	_, err = db.GetFromID(SundsvallAnlaggningPrefix + "1545")
+	_, err = db.GetBeachFromID(SundsvallAnlaggningPrefix + "1545")
 	if err != nil {
 		t.Errorf("Failed to find entity in database")
 		return
 	}
 
-	all, err := db.GetAllFromType("Strandbad")
+	all, err := db.GetAllBeaches()
 	if err != nil {
 		t.Errorf("Failed to query all beaches")
 		return

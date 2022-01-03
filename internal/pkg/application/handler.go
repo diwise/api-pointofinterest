@@ -116,7 +116,7 @@ func (cs *contextSource) ProvidesType(typeName string) bool {
 }
 
 func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntitiesCallback) error {
-	pointsOfInterest, err := cs.db.GetAllFromType("Strandbad")
+	pointsOfInterest, err := cs.db.GetAllBeaches()
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (cs *contextSource) RetrieveEntity(entityID string, request ngsi.Request) (
 	// Remove urn:ngsi-ld:Beach prefix
 	entityID = strings.TrimPrefix(entityID, fiware.BeachIDPrefix)
 
-	poi, err := cs.db.GetFromID(entityID)
+	poi, err := cs.db.GetBeachFromID(entityID)
 	if err != nil {
 		return nil, err
 	}

@@ -6,8 +6,8 @@ type MultiPolygon struct {
 	Lines [][][][]float64
 }
 
-//POI contains a point of interest
-type POI struct {
+//Beach contains a point of interest of type Beach
+type Beach struct {
 	ID               string
 	Name             string
 	Description      string

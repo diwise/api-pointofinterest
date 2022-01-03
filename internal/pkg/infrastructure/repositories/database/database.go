@@ -50,8 +50,8 @@ type FeatureCollection struct {
 
 //Datastore is an interface that abstracts away the database implementation
 type Datastore interface {
-	GetFromID(id string) (*domain.POI, error)
-	GetAllFromType(typ string) ([]domain.POI, error)
+	GetBeachFromID(id string) (*domain.Beach, error)
+	GetAllBeaches() ([]domain.Beach, error)
 
 	UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error)
 }
@@ -97,7 +97,7 @@ func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datast
 			if feature.Properties.Type == "Strandbad" {
 				log.Infof("Hittade publicerad badplats %d %s\n", feature.ID, feature.Properties.Name)
 
-				poi := &domain.POI{
+				beach := &domain.Beach{
 					ID:          fmt.Sprintf("%s%d", SundsvallAnlaggningPrefix, feature.ID),
 					Name:        feature.Properties.Name,
 					Description: "",
@@ -108,18 +108,18 @@ func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datast
 				if feature.Properties.Created != nil {
 					created, err := time.Parse(timeFormat, *feature.Properties.Created)
 					if err == nil {
-						poi.DateCreated = created.UTC()
+						beach.DateCreated = created.UTC()
 					}
 				}
 
 				if feature.Properties.Updated != nil {
 					modified, err := time.Parse(timeFormat, *feature.Properties.Updated)
 					if err == nil {
-						poi.DateModified = modified.UTC()
+						beach.DateModified = modified.UTC()
 					}
 				}
 
-				err = json.Unmarshal(feature.Geometry.Coordinates, &poi.Geometry.Lines)
+				err = json.Unmarshal(feature.Geometry.Coordinates, &beach.Geometry.Lines)
 				if err != nil {
 					return nil, fmt.Errorf("failed to unmarshal geometry %s: %s", string(feature.Geometry.Coordinates), err.Error())
 				}
@@ -132,25 +132,25 @@ func NewDatabaseConnection(sourceURL, apiKey string, log logging.Logger) (Datast
 
 				for _, field := range fields {
 					if field.ID == 1 {
-						poi.Description = string(field.Value[1 : len(field.Value)-1])
+						beach.Description = string(field.Value[1 : len(field.Value)-1])
 					} else if field.ID == 230 {
 						sensor := "se:servanet:lora:" + string(field.Value[1:len(field.Value)-1])
-						poi.SensorID = &sensor
-						log.Infof("assigning sensor %s to poi %s", sensor, poi.ID)
+						beach.SensorID = &sensor
+						log.Infof("assigning sensor %s to beach %s", sensor, beach.ID)
 					}
 				}
 
 				if ref, ok := seeAlsoRefs[feature.ID]; ok {
 					if len(ref.nuts) > 0 {
-						poi.NUTSCode = &ref.nuts
+						beach.NUTSCode = &ref.nuts
 					}
 
 					if len(ref.wikidata) > 0 {
-						poi.WikidataID = &ref.wikidata
+						beach.WikidataID = &ref.wikidata
 					}
 				}
 
-				db.beaches = append(db.beaches, *poi)
+				db.beaches = append(db.beaches, *beach)
 			}
 		}
 	}
@@ -292,10 +292,10 @@ func lookupTempSensorFromBeachID(beach int64) *string {
 }
 
 type myDB struct {
-	beaches []domain.POI
+	beaches []domain.Beach
 }
 
-func (db *myDB) GetFromID(id string) (*domain.POI, error) {
+func (db *myDB) GetBeachFromID(id string) (*domain.Beach, error) {
 	for _, poi := range db.beaches {
 		if strings.Compare(poi.ID, id) == 0 {
 			return &poi, nil
@@ -304,7 +304,7 @@ func (db *myDB) GetFromID(id string) (*domain.POI, error) {
 	return nil, errors.New("not found")
 }
 
-func (db *myDB) GetAllFromType(typ string) ([]domain.POI, error) {
+func (db *myDB) GetAllBeaches() ([]domain.Beach, error) {
 	return db.beaches, nil
 }
 
@@ -322,5 +322,5 @@ func (db *myDB) UpdateWaterTemperatureFromDeviceID(device string, temp float64, 
 		}
 	}
 
-	return "", fmt.Errorf("no POI found matching sensor ID %s", device)
+	return "", fmt.Errorf("no beach found matching sensor ID %s", device)
 }

@@ -57,6 +57,7 @@ type Datastore interface {
 
 	GetTrailFromID(id string) (*domain.ExerciseTrail, error)
 	GetAllTrails() ([]domain.ExerciseTrail, error)
+	UpdateTrailLastPreparationTime(trailID string, dateLastPreparation time.Time) error
 }
 
 //NewDatabaseConnection does not open a new connection ...
@@ -324,6 +325,22 @@ func (db *myDB) GetTrailFromID(id string) (*domain.ExerciseTrail, error) {
 		}
 	}
 	return nil, errors.New("not found")
+}
+
+func (db *myDB) UpdateTrailLastPreparationTime(trailID string, dateLastPreparation time.Time) error {
+	for idx, trail := range db.trails {
+		if strings.Compare(trail.ID, trailID) == 0 {
+			if trail.DateLastPrepared.After(dateLastPreparation) {
+				return fmt.Errorf("last preparation date may not move backwards")
+			}
+
+			db.trails[idx].DateLastPrepared = dateLastPreparation
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
 }
 
 func (db *myDB) UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error) {

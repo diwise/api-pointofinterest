@@ -2,6 +2,10 @@ package domain
 
 import "time"
 
+type LineString struct {
+	Lines [][]float64
+}
+
 type MultiPolygon struct {
 	Lines [][][][]float64
 }
@@ -18,4 +22,16 @@ type Beach struct {
 	WaterTemperature *float64
 	DateCreated      time.Time
 	DateModified     time.Time
+}
+
+type ExerciseTrail struct {
+	ID               string
+	Name             string
+	Description      string
+	Length           float64
+	Geometry         LineString
+	DateCreated      time.Time
+	DateModified     time.Time
+	DateLastPrepared time.Time
+	Source           string
 }

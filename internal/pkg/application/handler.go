@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/repositories/database"
+	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/diwise"
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
@@ -112,22 +113,44 @@ func (cs *contextSource) ProvidesAttribute(attributeName string) bool {
 }
 
 func (cs *contextSource) ProvidesEntitiesWithMatchingID(entityID string) bool {
-	return strings.HasPrefix(entityID, fiware.BeachIDPrefix)
+	return strings.HasPrefix(entityID, fiware.BeachIDPrefix) || strings.HasPrefix(entityID, diwise.ExerciseTrailIDPrefix)
 }
 
 func (cs *contextSource) GetProvidedTypeFromID(entityID string) (string, error) {
 	if strings.HasPrefix(entityID, fiware.BeachIDPrefix) {
-		return "Beach", nil
+		return fiware.BeachTypeName, nil
 	}
 
-	return "", fmt.Errorf("unknown entityID prefix")
+	if strings.HasPrefix(entityID, diwise.ExerciseTrailIDPrefix) {
+		return diwise.ExerciseTrailTypeName, nil
+	}
+
+	return "", fmt.Errorf("unknown entity id prefix")
 }
 
 func (cs *contextSource) ProvidesType(typeName string) bool {
-	return typeName == "Beach"
+	return typeName == fiware.BeachTypeName || typeName == diwise.ExerciseTrailTypeName
 }
 
 func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntitiesCallback) error {
+	var err error
+
+	for _, entityType := range query.EntityTypes() {
+		if entityType == fiware.BeachTypeName {
+			err = cs.getBeaches(query, callback)
+		} else if entityType == diwise.ExerciseTrailTypeName {
+			err = cs.getTrails(query, callback)
+		}
+
+		if err != nil {
+			break
+		}
+	}
+
+	return err
+}
+
+func (cs *contextSource) getBeaches(query ngsi.Query, callback ngsi.QueryEntitiesCallback) error {
 	pointsOfInterest, err := cs.db.GetAllBeaches()
 	if err != nil {
 		return err
@@ -170,6 +193,38 @@ func (cs *contextSource) GetEntities(query ngsi.Query, callback ngsi.QueryEntiti
 		}
 
 		callback(beach.WithDescription(poi.Description))
+	}
+
+	return nil
+}
+
+func (cs *contextSource) getTrails(query ngsi.Query, callback ngsi.QueryEntitiesCallback) error {
+	allTrails, err := cs.db.GetAllTrails()
+	if err != nil {
+		return err
+	}
+
+	for _, t := range allTrails {
+		location := geojson.CreateGeoJSONPropertyFromLineString(t.Geometry.Lines)
+		trail := diwise.NewExerciseTrail(t.ID, t.Name, t.Length, t.Description, location)
+
+		if !t.DateCreated.IsZero() {
+			trail.DateCreated = ngsitypes.CreateDateTimeProperty(t.DateCreated.Format(time.RFC3339))
+		}
+
+		if !t.DateModified.IsZero() {
+			trail.DateModified = ngsitypes.CreateDateTimeProperty(t.DateModified.Format(time.RFC3339))
+		}
+
+		if !t.DateLastPrepared.IsZero() {
+			trail.DateLastPreparation = ngsitypes.CreateDateTimeProperty(t.DateLastPrepared.Format(time.RFC3339))
+		}
+
+		if t.Source != "" {
+			trail.Source = ngsitypes.NewTextProperty(t.Source)
+		}
+
+		callback(trail)
 	}
 
 	return nil

@@ -5,19 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
 	"github.com/diwise/api-pointofinterest/internal/pkg/domain"
 )
 
 const (
-	SundsvallAnlaggningPrefix string = "se:sundsvall:anlaggning:"
+	SundsvallAnlaggningPrefix string = "se:sundsvall:facilities:"
 )
 
 type FeatureGeom struct {
@@ -54,8 +53,10 @@ type FeatureCollection struct {
 type Datastore interface {
 	GetBeachFromID(id string) (*domain.Beach, error)
 	GetAllBeaches() ([]domain.Beach, error)
-
 	UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error)
+
+	GetTrailFromID(id string) (*domain.ExerciseTrail, error)
+	GetAllTrails() ([]domain.ExerciseTrail, error)
 }
 
 //NewDatabaseConnection does not open a new connection ...
@@ -97,62 +98,23 @@ func NewDatabaseConnection(sourceURL, apiKey string, logger zerolog.Logger) (Dat
 	for _, feature := range featureCollection.Features {
 		if feature.Properties.Published {
 			if feature.Properties.Type == "Strandbad" {
-				log.Info().Msgf("found published beach %d %s\n", feature.ID, feature.Properties.Name)
-
-				beach := &domain.Beach{
-					ID:          fmt.Sprintf("%s%d", SundsvallAnlaggningPrefix, feature.ID),
-					Name:        feature.Properties.Name,
-					Description: "",
-				}
-
-				var timeFormat string = "2006-01-02 15:04:05"
-
-				if feature.Properties.Created != nil {
-					created, err := time.Parse(timeFormat, *feature.Properties.Created)
-					if err == nil {
-						beach.DateCreated = created.UTC()
-					}
-				}
-
-				if feature.Properties.Updated != nil {
-					modified, err := time.Parse(timeFormat, *feature.Properties.Updated)
-					if err == nil {
-						beach.DateModified = modified.UTC()
-					}
-				}
-
-				err = json.Unmarshal(feature.Geometry.Coordinates, &beach.Geometry.Lines)
+				beach, err := parsePublishedBeach(logger, feature)
 				if err != nil {
-					return nil, fmt.Errorf("failed to unmarshal geometry %s: %s", string(feature.Geometry.Coordinates), err.Error())
-				}
-
-				fields := []FeaturePropField{}
-				err = json.Unmarshal(feature.Properties.Fields, &fields)
-				if err != nil {
-					return nil, fmt.Errorf("failed to unmarshal property fields %s: %s", string(feature.Properties.Fields), err.Error())
-				}
-
-				for _, field := range fields {
-					if field.ID == 1 {
-						beach.Description = string(field.Value[1 : len(field.Value)-1])
-					} else if field.ID == 230 {
-						sensor := "se:servanet:lora:" + string(field.Value[1:len(field.Value)-1])
-						beach.SensorID = &sensor
-						logger.Info().Msgf("assigning sensor %s to beach %s", sensor, beach.ID)
-					}
-				}
-
-				if ref, ok := seeAlsoRefs[feature.ID]; ok {
-					if len(ref.nuts) > 0 {
-						beach.NUTSCode = &ref.nuts
-					}
-
-					if len(ref.wikidata) > 0 {
-						beach.WikidataID = &ref.wikidata
-					}
+					logger.Error().Err(err).Msg("failed to parse strandbad")
+					continue
 				}
 
 				db.beaches = append(db.beaches, *beach)
+			} else if feature.Properties.Type == "Motionsspår" || feature.Properties.Type == "Skidspår" {
+				exerciseTrail, err := parsePublishedExerciseTrail(logger, feature)
+				if err != nil {
+					logger.Error().Err(err).Msg("failed to parse motionsspår")
+					continue
+				}
+
+				exerciseTrail.Source = fmt.Sprintf("%s/get/%d", sourceURL, feature.ID)
+
+				db.trails = append(db.trails, *exerciseTrail)
 			}
 		}
 	}
@@ -160,63 +122,111 @@ func NewDatabaseConnection(sourceURL, apiKey string, logger zerolog.Logger) (Dat
 	return db, nil
 }
 
-func convertSWEREFtoWGS84(x, y float64) (float64, float64) {
+func parsePublishedBeach(log zerolog.Logger, feature Feature) (*domain.Beach, error) {
+	log.Info().Msgf("found published beach %d %s\n", feature.ID, feature.Properties.Name)
 
-	//Code adapted from
-	//https://github.com/bjornsallarp/MightyLittleGeodesy/blob/master/MightyLittleGeodesy/Classes/GaussKreuger.cs
+	beach := &domain.Beach{
+		ID:          fmt.Sprintf("%s%d", SundsvallAnlaggningPrefix, feature.ID),
+		Name:        feature.Properties.Name,
+		Description: "",
+	}
 
-	var axis float64 = 6378137.0                 // GRS 80.
-	var flattening float64 = 1.0 / 298.257222101 // GRS 80.
+	var timeFormat string = "2006-01-02 15:04:05"
 
-	var centralMeridian float64 = 15.00
-	var scale float64 = 0.9996
-	var falseNorthing float64 = 0.0
-	var falseEasting float64 = 500000.0
+	if feature.Properties.Created != nil {
+		created, err := time.Parse(timeFormat, *feature.Properties.Created)
+		if err == nil {
+			beach.DateCreated = created.UTC()
+		}
+	}
 
-	e2 := flattening * (2.0 - flattening)
-	n := flattening / (2.0 - flattening)
+	if feature.Properties.Updated != nil {
+		modified, err := time.Parse(timeFormat, *feature.Properties.Updated)
+		if err == nil {
+			beach.DateModified = modified.UTC()
+		}
+	}
 
-	aRoof := axis / (1.0 + n) * (1.0 + n*n/4.0 + n*n*n*n/64.0)
-	delta1 := n/2.0 - 2.0*n*n/3.0 + 37.0*n*n*n/96.0 - n*n*n*n/360.0
-	delta2 := n*n/48.0 + n*n*n/15.0 - 437.0*n*n*n*n/1440.0
-	delta3 := 17.0*n*n*n/480.0 - 37*n*n*n*n/840.0
-	delta4 := 4397.0 * n * n * n * n / 161280.0
+	err := json.Unmarshal(feature.Geometry.Coordinates, &beach.Geometry.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal geometry %s: %s", string(feature.Geometry.Coordinates), err.Error())
+	}
 
-	Astar := e2 + e2*e2 + e2*e2*e2 + e2*e2*e2*e2
-	Bstar := -(7.0*e2*e2 + 17.0*e2*e2*e2 + 30.0*e2*e2*e2*e2) / 6.0
-	Cstar := (224.0*e2*e2*e2 + 889.0*e2*e2*e2*e2) / 120.0
-	Dstar := -(4279.0 * e2 * e2 * e2 * e2) / 1260.0
+	fields := []FeaturePropField{}
+	err = json.Unmarshal(feature.Properties.Fields, &fields)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal property fields %s: %s", string(feature.Properties.Fields), err.Error())
+	}
 
-	// Convert.
-	degToRad := math.Pi / 180
-	lambdaZero := centralMeridian * degToRad
-	xi := (x - falseNorthing) / (scale * aRoof)
-	eta := (y - falseEasting) / (scale * aRoof)
-	xiPrim := xi -
-		delta1*math.Sin(2.0*xi)*math.Cosh(2.0*eta) -
-		delta2*math.Sin(4.0*xi)*math.Cosh(4.0*eta) -
-		delta3*math.Sin(6.0*xi)*math.Cosh(6.0*eta) -
-		delta4*math.Sin(8.0*xi)*math.Cosh(8.0*eta)
-	etaPrim := eta -
-		delta1*math.Cos(2.0*xi)*math.Sinh(2.0*eta) -
-		delta2*math.Cos(4.0*xi)*math.Sinh(4.0*eta) -
-		delta3*math.Cos(6.0*xi)*math.Sinh(6.0*eta) -
-		delta4*math.Cos(8.0*xi)*math.Sinh(8.0*eta)
+	for _, field := range fields {
+		if field.ID == 1 {
+			beach.Description = string(field.Value[1 : len(field.Value)-1])
+		} else if field.ID == 230 {
+			sensor := "se:servanet:lora:" + string(field.Value[1:len(field.Value)-1])
+			beach.SensorID = &sensor
+			log.Info().Msgf("assigning sensor %s to beach %s", sensor, beach.ID)
+		}
+	}
 
-	phiStar := math.Asin(math.Sin(xiPrim) / math.Cosh(etaPrim))
-	deltaLambda := math.Atan(math.Sinh(etaPrim) / math.Cos(xiPrim))
+	if ref, ok := seeAlsoRefs[feature.ID]; ok {
+		if len(ref.nuts) > 0 {
+			beach.NUTSCode = &ref.nuts
+		}
 
-	lonRadian := lambdaZero + deltaLambda
-	latRadian := phiStar + math.Sin(phiStar)*math.Cos(phiStar)*
-		(Astar+
-			Bstar*math.Pow(math.Sin(phiStar), 2)+
-			Cstar*math.Pow(math.Sin(phiStar), 4)+
-			Dstar*math.Pow(math.Sin(phiStar), 6))
+		if len(ref.wikidata) > 0 {
+			beach.WikidataID = &ref.wikidata
+		}
+	}
 
-	lat := latRadian * 180.0 / math.Pi
-	lon := lonRadian * 180.0 / math.Pi
+	return beach, nil
+}
 
-	return lon, lat
+func parsePublishedExerciseTrail(log zerolog.Logger, feature Feature) (*domain.ExerciseTrail, error) {
+	log.Info().Msgf("found published exercise trail %d %s\n", feature.ID, feature.Properties.Name)
+
+	trail := &domain.ExerciseTrail{
+		ID:          fmt.Sprintf("%s%d", SundsvallAnlaggningPrefix, feature.ID),
+		Name:        feature.Properties.Name,
+		Description: "",
+	}
+
+	var timeFormat string = "2006-01-02 15:04:05"
+
+	if feature.Properties.Created != nil {
+		created, err := time.Parse(timeFormat, *feature.Properties.Created)
+		if err == nil {
+			trail.DateCreated = created.UTC()
+		}
+	}
+
+	if feature.Properties.Updated != nil {
+		modified, err := time.Parse(timeFormat, *feature.Properties.Updated)
+		if err == nil {
+			trail.DateModified = modified.UTC()
+		}
+	}
+
+	err := json.Unmarshal(feature.Geometry.Coordinates, &trail.Geometry.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal geometry %s: %s", string(feature.Geometry.Coordinates), err.Error())
+	}
+
+	fields := []FeaturePropField{}
+	err = json.Unmarshal(feature.Properties.Fields, &fields)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal property fields %s: %s", string(feature.Properties.Fields), err.Error())
+	}
+
+	for _, field := range fields {
+		if field.ID == 110 {
+			trail.Description = string(field.Value[1 : len(field.Value)-1])
+		} else if field.ID == 99 {
+			length, _ := strconv.ParseInt(string(field.Value[0:len(field.Value)]), 10, 64)
+			trail.Length = float64(length) / 1000.0
+		}
+	}
+
+	return trail, nil
 }
 
 type extraInfo struct {
@@ -285,16 +295,17 @@ var seeAlsoRefs map[int64]extraInfo = map[int64]extraInfo{
 	1631: {nuts: "SE0712281000003480", sensorID: "sk-elt-temp-20"},
 }
 
-func lookupTempSensorFromBeachID(beach int64) *string {
-	if sensor, ok := seeAlsoRefs[beach]; ok {
-		prefixedSensor := fmt.Sprintf("se:servanet:lora:%s", sensor.sensorID)
-		return &prefixedSensor
-	}
-	return nil
-}
-
 type myDB struct {
 	beaches []domain.Beach
+	trails  []domain.ExerciseTrail
+}
+
+func (db *myDB) GetAllBeaches() ([]domain.Beach, error) {
+	return db.beaches, nil
+}
+
+func (db *myDB) GetAllTrails() ([]domain.ExerciseTrail, error) {
+	return db.trails, nil
 }
 
 func (db *myDB) GetBeachFromID(id string) (*domain.Beach, error) {
@@ -306,8 +317,13 @@ func (db *myDB) GetBeachFromID(id string) (*domain.Beach, error) {
 	return nil, errors.New("not found")
 }
 
-func (db *myDB) GetAllBeaches() ([]domain.Beach, error) {
-	return db.beaches, nil
+func (db *myDB) GetTrailFromID(id string) (*domain.ExerciseTrail, error) {
+	for _, trail := range db.trails {
+		if strings.Compare(trail.ID, id) == 0 {
+			return &trail, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
 
 func (db *myDB) UpdateWaterTemperatureFromDeviceID(device string, temp float64, observedAt time.Time) (string, error) {

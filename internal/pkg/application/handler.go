@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/diwise/api-pointofinterest/internal/pkg/domain"
 	"github.com/diwise/api-pointofinterest/internal/pkg/infrastructure/repositories/database"
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/diwise"
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
@@ -17,6 +18,7 @@ import (
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/httplog"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 )
@@ -64,7 +66,11 @@ func newRequestRouter() *RequestRouter {
 	// Enable gzip compression for ngsi-ld responses
 	compressor := middleware.NewCompressor(flate.DefaultCompression, "application/json", "application/ld+json")
 	router.impl.Use(compressor.Handler)
-	router.impl.Use(middleware.Logger)
+
+	logger := httplog.NewLogger("api-pointofinterest", httplog.Options{
+		JSON: true,
+	})
+	router.impl.Use(httplog.RequestLogger(logger))
 
 	return router
 }
@@ -205,25 +211,7 @@ func (cs *contextSource) getTrails(query ngsi.Query, callback ngsi.QueryEntities
 	}
 
 	for _, t := range allTrails {
-		location := geojson.CreateGeoJSONPropertyFromLineString(t.Geometry.Lines)
-		trail := diwise.NewExerciseTrail(t.ID, t.Name, t.Length, t.Description, location)
-
-		if !t.DateCreated.IsZero() {
-			trail.DateCreated = ngsitypes.CreateDateTimeProperty(t.DateCreated.Format(time.RFC3339))
-		}
-
-		if !t.DateModified.IsZero() {
-			trail.DateModified = ngsitypes.CreateDateTimeProperty(t.DateModified.Format(time.RFC3339))
-		}
-
-		if !t.DateLastPrepared.IsZero() {
-			trail.DateLastPreparation = ngsitypes.CreateDateTimeProperty(t.DateLastPrepared.Format(time.RFC3339))
-		}
-
-		if t.Source != "" {
-			trail.Source = ngsitypes.NewTextProperty(t.Source)
-		}
-
+		trail := convertDBTrailToFiwareExerciseTrail(t)
 		callback(trail)
 	}
 
@@ -232,17 +220,33 @@ func (cs *contextSource) getTrails(query ngsi.Query, callback ngsi.QueryEntities
 
 func (cs *contextSource) RetrieveEntity(entityID string, request ngsi.Request) (ngsi.Entity, error) {
 
-	// Remove urn:ngsi-ld:Beach prefix
-	entityID = strings.TrimPrefix(entityID, fiware.BeachIDPrefix)
+	if strings.HasPrefix(entityID, fiware.BeachIDPrefix) {
+		// Remove urn:ngsi-ld:Beach prefix
+		entityID = strings.TrimPrefix(entityID, fiware.BeachIDPrefix)
 
-	poi, err := cs.db.GetBeachFromID(entityID)
-	if err != nil {
-		return nil, err
+		poi, err := cs.db.GetBeachFromID(entityID)
+		if err != nil {
+			return nil, err
+		}
+
+		location := geojson.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
+		beach := fiware.NewBeach(poi.ID, poi.Name, location).WithDescription(poi.Description)
+		return beach, nil
+	} else if strings.HasPrefix(entityID, diwise.ExerciseTrailIDPrefix) {
+		// Remove urn:ngsi-ld:ExerciseTrail prefix
+		entityID = strings.TrimPrefix(entityID, diwise.ExerciseTrailIDPrefix)
+
+		dbTrail, err := cs.db.GetTrailFromID(entityID)
+		if err != nil {
+			return nil, err
+		}
+
+		trail := convertDBTrailToFiwareExerciseTrail(*dbTrail)
+
+		return trail, nil
 	}
 
-	location := geojson.CreateGeoJSONPropertyFromMultiPolygon(poi.Geometry.Lines)
-	beach := fiware.NewBeach(poi.ID, poi.Name, location).WithDescription(poi.Description)
-	return beach, nil
+	return nil, fmt.Errorf("entity %s not found", entityID)
 }
 
 func (cs *contextSource) CreateEntity(typeName, entityID string, request ngsi.Request) error {
@@ -251,4 +255,27 @@ func (cs *contextSource) CreateEntity(typeName, entityID string, request ngsi.Re
 
 func (cs *contextSource) UpdateEntityAttributes(entityID string, request ngsi.Request) error {
 	return errors.New("not implemented")
+}
+
+func convertDBTrailToFiwareExerciseTrail(trail domain.ExerciseTrail) *diwise.ExerciseTrail {
+	location := geojson.CreateGeoJSONPropertyFromLineString(trail.Geometry.Lines)
+	exerciseTrail := diwise.NewExerciseTrail(trail.ID, trail.Name, trail.Length, trail.Description, location)
+
+	if !trail.DateCreated.IsZero() {
+		exerciseTrail.DateCreated = ngsitypes.CreateDateTimeProperty(trail.DateCreated.Format(time.RFC3339))
+	}
+
+	if !trail.DateModified.IsZero() {
+		exerciseTrail.DateModified = ngsitypes.CreateDateTimeProperty(trail.DateModified.Format(time.RFC3339))
+	}
+
+	if !trail.DateLastPrepared.IsZero() {
+		exerciseTrail.DateLastPreparation = ngsitypes.CreateDateTimeProperty(trail.DateLastPrepared.Format(time.RFC3339))
+	}
+
+	if trail.Source != "" {
+		exerciseTrail.Source = ngsitypes.NewTextProperty(trail.Source)
+	}
+
+	return exerciseTrail
 }

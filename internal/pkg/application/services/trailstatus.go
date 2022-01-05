@@ -35,52 +35,57 @@ type trailServiceImpl struct {
 }
 
 func (ts *trailServiceImpl) run() {
+	ts.updateTrailStatusFromSource()
+
 	for ts.keepRunning {
-		req, err := http.NewRequest("GET", ts.url, nil)
-		if err != nil {
-			ts.log.Error().Err(err).Msg("failed to create http request")
-			continue
-		}
+		time.Sleep(60 * time.Second)
+		ts.updateTrailStatusFromSource()
+	}
+}
 
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			ts.log.Error().Err(err).Msg("failed to request trail status update")
-			continue
-		}
+func (ts *trailServiceImpl) updateTrailStatusFromSource() {
+	req, err := http.NewRequest("GET", ts.url, nil)
+	if err != nil {
+		ts.log.Error().Err(err).Msg("failed to create http request")
+		return
+	}
 
-		defer resp.Body.Close()
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		ts.log.Error().Err(err).Msg("failed to request trail status update")
+		return
+	}
 
-		if resp.StatusCode != http.StatusOK {
-			ts.log.Error().Msgf("loading data from %s failed with status %d", ts.url, resp.StatusCode)
-			continue
-		}
+	defer resp.Body.Close()
 
-		status := struct {
-			Ski map[string]struct {
-				Active          bool   `json:"isActive"`
-				ExternalID      string `json:"externalId"`
-				LastPreparation string `json:"lastPreparation"`
-			} `json:"Ski"`
-		}{}
+	if resp.StatusCode != http.StatusOK {
+		ts.log.Error().Msgf("loading data from %s failed with status %d", ts.url, resp.StatusCode)
+		return
+	}
 
-		body, _ := io.ReadAll(resp.Body)
-		_ = json.Unmarshal(body, &status)
+	status := struct {
+		Ski map[string]struct {
+			Active          bool   `json:"isActive"`
+			ExternalID      string `json:"externalId"`
+			LastPreparation string `json:"lastPreparation"`
+		} `json:"Ski"`
+	}{}
 
-		for k, v := range status.Ski {
-			if v.Active && v.ExternalID != "" {
-				trailID := database.SundsvallAnlaggningPrefix + v.ExternalID
-				lastPrepared, err := time.Parse(time.RFC3339, v.LastPreparation)
+	body, _ := io.ReadAll(resp.Body)
+	_ = json.Unmarshal(body, &status)
 
-				if err == nil {
-					err = ts.db.UpdateTrailLastPreparationTime(trailID, lastPrepared)
-					if err != nil {
-						ts.log.Error().Err(err).Msgf("failed to update trail status for %s", k)
-					}
+	for k, v := range status.Ski {
+		if v.Active && v.ExternalID != "" {
+			trailID := database.SundsvallAnlaggningPrefix + v.ExternalID
+			lastPrepared, err := time.Parse(time.RFC3339, v.LastPreparation)
+
+			if err == nil {
+				err = ts.db.UpdateTrailLastPreparationTime(trailID, lastPrepared)
+				if err != nil {
+					ts.log.Error().Err(err).Msgf("failed to update trail status for %s", k)
 				}
 			}
 		}
-
-		time.Sleep(60 * time.Second)
 	}
 }
 

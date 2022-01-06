@@ -64,7 +64,7 @@ func newRequestRouter() *RequestRouter {
 	}).Handler)
 
 	// Enable gzip compression for ngsi-ld responses
-	compressor := middleware.NewCompressor(flate.DefaultCompression, "application/json", "application/ld+json")
+	compressor := middleware.NewCompressor(flate.DefaultCompression, "application/json", "application/geo+json", "application/ld+json")
 	router.impl.Use(compressor.Handler)
 
 	logger := httplog.NewLogger("api-pointofinterest", httplog.Options{

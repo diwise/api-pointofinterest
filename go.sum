@@ -2,8 +2,8 @@ github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e/go.mod h1:F5haX7
 github.com/coreos/go-systemd/v22 v22.3.2/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/diwise/messaging-golang v0.0.0-20211111104545-866f008942ef h1:gnCwANBbaheAoYcacx3kadzKRl7b0mXak1k9GHHsN3g=
 github.com/diwise/messaging-golang v0.0.0-20211111104545-866f008942ef/go.mod h1:lJ1ZkpZleRmvOTC/vSW4ZGQGxjvuxpoowB/9p8V5oJM=
-github.com/diwise/ngsi-ld-golang v0.0.0-20220106160044-a2f364c526df h1:RvysQyC9cygv0dhbzhZbkOz3uSGLqiQknVvWvOnUyog=
-github.com/diwise/ngsi-ld-golang v0.0.0-20220106160044-a2f364c526df/go.mod h1:rJEtJBmPwq3c+0leOb2Zy/u/Z9eTIT8RJQFyGJzoMrM=
+github.com/diwise/ngsi-ld-golang v0.0.0-20220106222707-9e3b85f861ed h1:2LZ465Ax9QAEZwybsSgqco01a4m5r694onuUZ99zJR4=
+github.com/diwise/ngsi-ld-golang v0.0.0-20220106222707-9e3b85f861ed/go.mod h1:rJEtJBmPwq3c+0leOb2Zy/u/Z9eTIT8RJQFyGJzoMrM=
 github.com/go-chi/chi/v5 v5.0.0 h1:DBPx88FjZJH3FsICfDAfIfnb7XxKIYVGG6lOPlhENAg=
 github.com/go-chi/chi/v5 v5.0.0/go.mod h1:BBug9lr0cqtdAhsu6R4AAdvufI0/XBzAQSsUqJpoZOs=
 github.com/go-chi/httplog v0.2.1 h1:KgCtIUkYNlfIsUPzE3utxd1KDKOvCrnAKaqdo0rmrh0=

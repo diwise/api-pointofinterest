@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/diwise/messaging-golang v0.0.0-20211111104545-866f008942ef
-	github.com/diwise/ngsi-ld-golang v0.0.0-20220106160044-a2f364c526df
+	github.com/diwise/ngsi-ld-golang v0.0.0-20220106222707-9e3b85f861ed
 	github.com/go-chi/chi/v5 v5.0.0
 	github.com/go-chi/httplog v0.2.1
 	github.com/matryer/is v1.4.0

@@ -106,7 +106,7 @@ func NewDatabaseConnection(sourceURL, apiKey string, logger zerolog.Logger) (Dat
 				}
 
 				db.beaches = append(db.beaches, *beach)
-			} else if feature.Properties.Type == "Motionsspår" || feature.Properties.Type == "Skidspår" {
+			} else if feature.Properties.Type == "Motionsspår" || feature.Properties.Type == "Skidspår" || feature.Properties.Type == "Långfärdsskridskoled" {
 				exerciseTrail, err := parsePublishedExerciseTrail(logger, feature)
 				if err != nil {
 					logger.Error().Err(err).Msg("failed to parse motionsspår")
@@ -218,6 +218,12 @@ func parsePublishedExerciseTrail(log zerolog.Logger, feature Feature) (*domain.E
 		return nil, fmt.Errorf("failed to unmarshal property fields %s: %s", string(feature.Properties.Fields), err.Error())
 	}
 
+	categories := []string{}
+
+	if feature.Properties.Type == "Långfärdsskridskoled" {
+		categories = append(categories, "ice-skating")
+	}
+
 	for _, field := range fields {
 		if field.ID == 99 {
 			length, _ := strconv.ParseInt(string(field.Value[0:len(field.Value)]), 10, 64)
@@ -226,12 +232,35 @@ func parsePublishedExerciseTrail(log zerolog.Logger, feature Feature) (*domain.E
 			isOpen := string(field.Value[1 : len(field.Value)-1])
 			openStatus := map[string]string{"Ja": "open", "Nej": "closed"}
 			trail.Status = openStatus[isOpen]
+		} else if field.ID == 103 {
+			if propertyValueMatches(field, "Ja") {
+				categories = append(categories, "floodlit")
+			}
 		} else if field.ID == 110 {
 			trail.Description = string(field.Value[1 : len(field.Value)-1])
+		} else if field.ID == 134 {
+			trail.AreaServed = string(field.Value[1 : len(field.Value)-1])
+		} else if field.ID == 248 || field.ID == 250 {
+			if propertyValueMatches(field, "Ja") {
+				categories = append(categories, "ski-classic")
+			}
+		} else if field.ID == 249 || field.ID == 251 {
+			if propertyValueMatches(field, "Ja") {
+				categories = append(categories, "ski-skate")
+			}
 		}
 	}
 
+	if len(categories) > 0 {
+		trail.Category = categories
+	}
+
 	return trail, nil
+}
+
+func propertyValueMatches(field FeaturePropField, expectation string) bool {
+	value := string(field.Value[0:len(field.Value)])
+	return value == expectation || value == ("\""+expectation+"\"")
 }
 
 type extraInfo struct {

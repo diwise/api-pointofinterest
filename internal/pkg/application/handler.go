@@ -273,6 +273,14 @@ func convertDBTrailToFiwareExerciseTrail(trail domain.ExerciseTrail) *diwise.Exe
 		exerciseTrail.DateLastPreparation = ngsitypes.CreateDateTimeProperty(trail.DateLastPrepared.Format(time.RFC3339))
 	}
 
+	if trail.AreaServed != "" {
+		exerciseTrail.AreaServed = ngsitypes.NewTextProperty(trail.AreaServed)
+	}
+
+	if len(trail.Category) > 0 {
+		exerciseTrail.Category = ngsitypes.NewTextListProperty(trail.Category)
+	}
+
 	if trail.Source != "" {
 		exerciseTrail.Source = ngsitypes.NewTextProperty(trail.Source)
 	}

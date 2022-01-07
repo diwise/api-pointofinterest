@@ -28,7 +28,9 @@ type ExerciseTrail struct {
 	ID               string
 	Name             string
 	Description      string
+	Category         []string
 	Length           float64
+	AreaServed       string
 	Geometry         LineString
 	Status           string
 	DateCreated      time.Time

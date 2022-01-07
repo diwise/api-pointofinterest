@@ -30,6 +30,7 @@ type ExerciseTrail struct {
 	Description      string
 	Length           float64
 	Geometry         LineString
+	Status           string
 	DateCreated      time.Time
 	DateModified     time.Time
 	DateLastPrepared time.Time

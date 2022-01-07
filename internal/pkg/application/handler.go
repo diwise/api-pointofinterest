@@ -277,5 +277,9 @@ func convertDBTrailToFiwareExerciseTrail(trail domain.ExerciseTrail) *diwise.Exe
 		exerciseTrail.Source = ngsitypes.NewTextProperty(trail.Source)
 	}
 
+	if trail.Status != "" {
+		exerciseTrail.Status = ngsitypes.NewTextProperty(trail.Status)
+	}
+
 	return exerciseTrail
 }

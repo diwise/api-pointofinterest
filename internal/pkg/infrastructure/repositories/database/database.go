@@ -219,11 +219,15 @@ func parsePublishedExerciseTrail(log zerolog.Logger, feature Feature) (*domain.E
 	}
 
 	for _, field := range fields {
-		if field.ID == 110 {
-			trail.Description = string(field.Value[1 : len(field.Value)-1])
-		} else if field.ID == 99 {
+		if field.ID == 99 {
 			length, _ := strconv.ParseInt(string(field.Value[0:len(field.Value)]), 10, 64)
 			trail.Length = float64(length) / 1000.0
+		} else if field.ID == 102 {
+			isOpen := string(field.Value[1 : len(field.Value)-1])
+			openStatus := map[string]string{"Ja": "open", "Nej": "closed"}
+			trail.Status = openStatus[isOpen]
+		} else if field.ID == 110 {
+			trail.Description = string(field.Value[1 : len(field.Value)-1])
 		}
 	}
 

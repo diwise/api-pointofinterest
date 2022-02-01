@@ -57,6 +57,7 @@ type Datastore interface {
 
 	GetTrailFromID(id string) (*domain.ExerciseTrail, error)
 	GetAllTrails() ([]domain.ExerciseTrail, error)
+	SetTrailOpenStatus(trailID string, isOpen bool) error
 	UpdateTrailLastPreparationTime(trailID string, dateLastPreparation time.Time) error
 }
 
@@ -228,10 +229,6 @@ func parsePublishedExerciseTrail(log zerolog.Logger, feature Feature) (*domain.E
 		if field.ID == 99 {
 			length, _ := strconv.ParseInt(string(field.Value[0:len(field.Value)]), 10, 64)
 			trail.Length = float64(length) / 1000.0
-		} else if field.ID == 102 {
-			isOpen := string(field.Value[1 : len(field.Value)-1])
-			openStatus := map[string]string{"Ja": "open", "Nej": "closed"}
-			trail.Status = openStatus[isOpen]
 		} else if field.ID == 103 {
 			if propertyValueMatches(field, "Ja") {
 				categories = append(categories, "floodlit")
@@ -358,6 +355,21 @@ func (db *myDB) GetTrailFromID(id string) (*domain.ExerciseTrail, error) {
 		}
 	}
 	return nil, errors.New("not found")
+}
+
+func (db *myDB) SetTrailOpenStatus(trailID string, isOpen bool) error {
+	for idx, trail := range db.trails {
+		if strings.Compare(trail.ID, trailID) == 0 {
+			status := "closed"
+			if isOpen {
+				status = "open"
+			}
+			db.trails[idx].Status = status
+			return nil
+		}
+	}
+
+	return errors.New("not found")
 }
 
 func (db *myDB) UpdateTrailLastPreparationTime(trailID string, dateLastPreparation time.Time) error {

@@ -75,11 +75,18 @@ func (ts *trailServiceImpl) updateTrailStatusFromSource() {
 	_ = json.Unmarshal(body, &status)
 
 	for k, v := range status.Ski {
-		if v.Active && v.ExternalID != "" {
+		if v.ExternalID != "" {
 			trailID := database.SundsvallAnlaggningPrefix + v.ExternalID
-			lastPrepared, err := time.Parse(time.RFC3339, v.LastPreparation)
 
-			if err == nil {
+			ts.db.SetTrailOpenStatus(trailID, v.Active)
+
+			if v.Active {
+				lastPrepared, err := time.Parse(time.RFC3339, v.LastPreparation)
+				if err != nil {
+					ts.log.Warn().Err(err).Msgf("failed to parse trail preparation timestamp for %s", k)
+					continue
+				}
+
 				err = ts.db.UpdateTrailLastPreparationTime(trailID, lastPrepared)
 				if err != nil {
 					ts.log.Error().Err(err).Msgf("failed to update trail status for %s", k)
